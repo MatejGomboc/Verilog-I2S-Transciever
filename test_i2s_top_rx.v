@@ -2,8 +2,10 @@
 
 module test_i2s_top_rx;
 
-	parameter RST_DURATION = 50; //ns
-	parameter CLK_PERIOD = 20; //ns
+	localparam RST_DURATION = 50; //ns
+	localparam CLK_PERIOD = 20; //ns
+	
+	localparam STIMULUS_DATA_COUNT = 10;
 
 	// Inputs
 	reg clk_i;
@@ -21,8 +23,9 @@ module test_i2s_top_rx;
 	reg [15:0] data_rx [0:1];
 	
 	// Transmitted data
-	reg [99:0] data_tx;
+	reg [15:0] data_tx [0:STIMULUS_DATA_COUNT-1];
 	integer indx_tx;
+	integer indx_bit_tx;
 
 	// Instantiate the Unit Under Test (UUT)
 	i2s_top_rx uut
@@ -36,9 +39,10 @@ module test_i2s_top_rx;
 		.wsel_o(wsel_o), 
 		.sdat_i(sdat_i)
 	);
+	defparam uut.WORD_WIDTH = 16;
 
 	// Reset pulse generator
-	initial begin
+	initial begin : reset_generator
 		rst_i = 1'b1;
 		sdat_i = 1'b0;
 		#(RST_DURATION);
@@ -46,7 +50,7 @@ module test_i2s_top_rx;
 	end
 	
 	// Main oscillator
-	initial begin
+	initial begin : clk_generator
 		clk_i = 1'b0;
 		#(RST_DURATION);
 		forever begin
@@ -55,26 +59,33 @@ module test_i2s_top_rx;
 	end
 	
 	// I2S transmitter
-	initial begin
+	initial begin : transmitter
+		read_from_file;
 		indx_tx = 0;
-		read_from_file(data_tx);
+		indx_bit_tx = 15;
 		sdat_i = 1'b0;
 		#(RST_DURATION);
 		forever begin
 			@(negedge(clk_i)) begin
-				if (indx_tx < 100) begin
-					sdat_i = data_tx[indx_tx];
-					indx_tx = indx_tx + 1;
+				if (indx_tx < STIMULUS_DATA_COUNT) begin
+					sdat_i = data_tx[indx_tx][indx_bit_tx];
+					if (indx_bit_tx > 0) begin
+						indx_bit_tx = indx_bit_tx - 1;
+					end
+					else begin
+						indx_tx = indx_tx + 1;
+						indx_bit_tx = 15;
+					end
 				end
 				else begin
-					$finish;
+					$stop;
 				end
 			end
 		end
 	end
 	
 	// Parallel receiver
-	always @ (negedge(clk_i) or posedge(rst_i)) begin
+	always @ (negedge(clk_i) or posedge(rst_i)) begin : receiver
 		if (rst_i) begin
 			data_rx[0] = 16'h0000;
 			data_rx[1] = 16'h0000;
@@ -93,11 +104,10 @@ module test_i2s_top_rx;
 	
 	task read_from_file;
 		integer stimulus_file;
-		output [99:0] read_value;
 	begin
 		stimulus_file = $fopen("stimulus/stimulus.txt", "r");
 		if (stimulus_file == 0) $finish;
-		if ($fscanf(stimulus_file, "%b", read_value) == 0) $finish;
+		if ($fscanf(stimulus_file, "%b", data_tx) == 0) $finish;
 	end
 	endtask;
       
