@@ -44,7 +44,6 @@ module test_i2s_top_rx;
 	// Reset pulse generator
 	initial begin : reset_generator
 		rst_i = 1'b1;
-		sdat_i = 1'b0;
 		#(RST_DURATION);
 		rst_i = 1'b0;
 	end
@@ -54,7 +53,7 @@ module test_i2s_top_rx;
 		clk_i = 1'b0;
 		#(RST_DURATION);
 		forever begin
-			clk_i = #(CLK_PERIOD) ~clk_i;
+			clk_i = #(CLK_PERIOD/2) ~clk_i;
 		end
 	end
 	
