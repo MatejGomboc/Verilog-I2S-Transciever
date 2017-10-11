@@ -4,7 +4,7 @@ module test_i2s_top_tx;
 
 	localparam RST_DURATION = 50; //ns
 	localparam CLK_PERIOD = 10; //ns
-	localparam SCLK_PERIOD = 200; //ns
+	localparam SCLK_PERIOD = 100; //ns
 	
 	localparam STIMULUS_DATA_COUNT = 10;
 
@@ -28,6 +28,7 @@ module test_i2s_top_tx;
 	// Transmitted data
 	reg [15:0] data_tx [0:STIMULUS_DATA_COUNT-1];
 	integer indx_tx;
+	integer indx_bit_tx;
 
 	// Instantiate the Unit Under Test (UUT)
 	i2s_top_tx uut
@@ -72,10 +73,18 @@ module test_i2s_top_tx;
 	always @ (negedge(sclk_i) or posedge(rst_i)) begin : wsel_generator
 		if (rst_i) begin
 			wsel_i = 0;
+			indx_bit_tx = 15;
 		end
 		else begin
-			if (indx_bit_rx == 1) begin
+			if (indx_bit_tx == 1) begin
 				wsel_i = ~wsel_i;
+			end
+			
+			if (indx_bit_tx == 0) begin
+				indx_bit_tx = 15;
+			end
+			else begin
+				indx_bit_tx = indx_bit_tx - 1;
 			end
 		end
 	end
@@ -90,6 +99,7 @@ module test_i2s_top_tx;
 		end
 		else begin
 			if (indx_bit_rx == 0) begin
+				$display("rx:     %h", data_rx[indx_rx]);
 				indx_bit_rx = 15;
 				indx_rx = ~indx_rx;
 			end
@@ -110,7 +120,9 @@ module test_i2s_top_tx;
 		else begin
 			if (write_o) begin
 				if (indx_tx < STIMULUS_DATA_COUNT) begin
+					$display("tx: %h", data_i);
 					data_i = data_tx[indx_tx];
+					//$display("tx: %h", data_i);
 					indx_tx = indx_tx + 1;
 				end
 				else begin

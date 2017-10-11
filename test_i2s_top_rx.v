@@ -72,6 +72,7 @@ module test_i2s_top_rx;
 						indx_bit_tx = indx_bit_tx - 1;
 					end
 					else begin
+						$display("tx: %h", data_tx[indx_tx]);
 						indx_tx = indx_tx + 1;
 						indx_bit_tx = 15;
 					end
@@ -91,6 +92,7 @@ module test_i2s_top_rx;
 		end
 		else begin
 			if (write_o) begin
+				$display("rx:     %h", data_o);
 				if (lr_chnl_o) begin
 					data_rx[1] = data_o;
 				end
